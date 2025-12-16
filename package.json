@@ -1,0 +1,9 @@
+{
+  "name": "custom-css-js-per-post",
+  "version": "1.0.0",
+  "description": "Add custom CSS/JS per post",
+  "scripts": {
+    "package": "rm -rf dist && mkdir -p dist/custom-css-js-per-post && cp custom-css-js-per-post.php README.md LICENSE.txt readme.txt dist/custom-css-js-per-post && cd dist && zip -r ../custom-css-js-per-post-$(node -p \"require('../package.json').version\").zip custom-css-js-per-post && cd .. && rm -rf dist"
+  },
+  "license": "GPL-2.0-or-later"
+}
