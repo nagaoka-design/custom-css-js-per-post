@@ -23,6 +23,14 @@ jobs:
       - name: Create package
         run: npm run package
 
+      - name: Debug: list workspace and find ZIP
+        run: |
+          echo "PWD: $(pwd)"
+          echo "Workspace top-level files:"
+          ls -la
+          echo "Looking for zip files matching pattern:"
+          find . -maxdepth 3 -name "custom-css-js-per-post-*.zip" -print || true
+
       - name: Create release and upload ZIP
         uses: softprops/action-gh-release@v1
         with:
