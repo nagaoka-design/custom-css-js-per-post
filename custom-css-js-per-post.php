@@ -4,7 +4,7 @@
  * Plugin Name: カスタムCSS/JS per Post
  * Plugin URI: 
  * Description: 投稿記事ごとにカスタムのCSS、JavaScriptを追加できるプラグイン
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Nagaoka Design Office
  * Author URI: https://nag-design.com
  * License: GPL v2 or later
@@ -105,15 +105,16 @@ function ccjpp_save_meta_boxes($post_id)
         return;
     }
 
-    // 権限チェック
-    if (! current_user_can('edit_post', $post_id)) {
+    // unfiltered_html権限チェック（管理者・編集者のみ）
+    if (! current_user_can('unfiltered_html')) {
         return;
     }
 
     // CSSの保存
     if (isset($_POST['ccjpp_css_nonce']) && wp_verify_nonce($_POST['ccjpp_css_nonce'], 'ccjpp_save_css')) {
         if (isset($_POST['ccjpp_custom_css'])) {
-            $css = wp_strip_all_tags($_POST['ccjpp_custom_css']);
+            // wp_kses()でHTMLタグを除去（CSS内の引用符は保持）
+            $css = wp_kses($_POST['ccjpp_custom_css'], array());
             update_post_meta($post_id, 'ccjpp_custom_css', $css);
         } else {
             delete_post_meta($post_id, 'ccjpp_custom_css');
@@ -123,7 +124,8 @@ function ccjpp_save_meta_boxes($post_id)
     // JSの保存
     if (isset($_POST['ccjpp_js_nonce']) && wp_verify_nonce($_POST['ccjpp_js_nonce'], 'ccjpp_save_js')) {
         if (isset($_POST['ccjpp_custom_js'])) {
-            $js = wp_strip_all_tags($_POST['ccjpp_custom_js']);
+            // wp_kses()でHTMLタグを除去（JS内の引用符は保持）
+            $js = wp_kses($_POST['ccjpp_custom_js'], array());
             update_post_meta($post_id, 'ccjpp_custom_js', $js);
         } else {
             delete_post_meta($post_id, 'ccjpp_custom_js');
@@ -142,8 +144,11 @@ function ccjpp_output_custom_css()
         $custom_css = get_post_meta($post->ID, 'ccjpp_custom_css', true);
 
         if (! empty($custom_css)) {
+            // 出力時にも再度サニタイズ（多層防御）
+            $custom_css = wp_kses($custom_css, array());
+
             echo '<style type="text/css" id="ccjpp-custom-css">' . "\n";
-            echo esc_html($custom_css) . "\n";
+            echo $custom_css . "\n";
             echo '</style>' . "\n";
         }
     }
@@ -160,6 +165,9 @@ function ccjpp_output_custom_js()
         $custom_js = get_post_meta($post->ID, 'ccjpp_custom_js', true);
 
         if (! empty($custom_js)) {
+            // 出力時にも再度サニタイズ（多層防御）
+            $custom_js = wp_kses($custom_js, array());
+
             echo '<script type="text/javascript" id="ccjpp-custom-js">' . "\n";
             echo '/* カスタムJS - Post ID: ' . esc_js($post->ID) . ' */' . "\n";
             echo $custom_js . "\n";
