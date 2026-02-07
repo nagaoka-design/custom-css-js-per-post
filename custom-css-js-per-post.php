@@ -17,6 +17,36 @@ if (! defined('ABSPATH')) {
 }
 
 /**
+ * CSSのサニタイズ
+ * 危険なHTMLタグパターンを除去し、CSSとして必要な記号は保持
+ */
+function ccjpp_sanitize_css($css)
+{
+    // 危険なタグパターンを除去
+    $css = preg_replace('/<script[^>]*?>.*?<\/script>/is', '', $css);
+    $css = preg_replace('/<iframe[^>]*?>.*?<\/iframe>/is', '', $css);
+    $css = preg_replace('/<object[^>]*?>.*?<\/object>/is', '', $css);
+    $css = preg_replace('/<embed[^>]*?>/is', '', $css);
+
+    return $css;
+}
+
+/**
+ * JavaScriptのサニタイズ
+ * 危険なHTMLタグパターンを除去し、JSとして必要な記号は保持
+ */
+function ccjpp_sanitize_js($js)
+{
+    // 危険なタグパターンを除去
+    $js = preg_replace('/<script[^>]*?>.*?<\/script>/is', '', $js);
+    $js = preg_replace('/<iframe[^>]*?>.*?<\/iframe>/is', '', $js);
+    $js = preg_replace('/<object[^>]*?>.*?<\/object>/is', '', $js);
+    $js = preg_replace('/<embed[^>]*?>/is', '', $js);
+
+    return $js;
+}
+
+/**
  * カスタムフィールドの追加
  */
 function ccjpp_add_meta_boxes()
@@ -113,8 +143,8 @@ function ccjpp_save_meta_boxes($post_id)
     // CSSの保存
     if (isset($_POST['ccjpp_css_nonce']) && wp_verify_nonce($_POST['ccjpp_css_nonce'], 'ccjpp_save_css')) {
         if (isset($_POST['ccjpp_custom_css'])) {
-            // wp_kses()でHTMLタグを除去（CSS内の引用符は保持）
-            $css = wp_kses($_POST['ccjpp_custom_css'], array());
+            // 危険なHTMLタグを除去（<script>, <iframe>など）
+            $css = ccjpp_sanitize_css($_POST['ccjpp_custom_css']);
             update_post_meta($post_id, 'ccjpp_custom_css', $css);
         } else {
             delete_post_meta($post_id, 'ccjpp_custom_css');
@@ -124,8 +154,8 @@ function ccjpp_save_meta_boxes($post_id)
     // JSの保存
     if (isset($_POST['ccjpp_js_nonce']) && wp_verify_nonce($_POST['ccjpp_js_nonce'], 'ccjpp_save_js')) {
         if (isset($_POST['ccjpp_custom_js'])) {
-            // wp_kses()でHTMLタグを除去（JS内の引用符は保持）
-            $js = wp_kses($_POST['ccjpp_custom_js'], array());
+            // 危険なHTMLタグを除去
+            $js = ccjpp_sanitize_js($_POST['ccjpp_custom_js']);
             update_post_meta($post_id, 'ccjpp_custom_js', $js);
         } else {
             delete_post_meta($post_id, 'ccjpp_custom_js');
@@ -144,9 +174,6 @@ function ccjpp_output_custom_css()
         $custom_css = get_post_meta($post->ID, 'ccjpp_custom_css', true);
 
         if (! empty($custom_css)) {
-            // 出力時にも再度サニタイズ（多層防御）
-            $custom_css = wp_kses($custom_css, array());
-
             echo '<style type="text/css" id="ccjpp-custom-css">' . "\n";
             echo $custom_css . "\n";
             echo '</style>' . "\n";
@@ -165,9 +192,6 @@ function ccjpp_output_custom_js()
         $custom_js = get_post_meta($post->ID, 'ccjpp_custom_js', true);
 
         if (! empty($custom_js)) {
-            // 出力時にも再度サニタイズ（多層防御）
-            $custom_js = wp_kses($custom_js, array());
-
             echo '<script type="text/javascript" id="ccjpp-custom-js">' . "\n";
             echo '/* カスタムJS - Post ID: ' . esc_js($post->ID) . ' */' . "\n";
             echo $custom_js . "\n";
